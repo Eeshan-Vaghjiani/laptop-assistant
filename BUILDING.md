@@ -21,19 +21,24 @@ npm test
 ## Windows installer
 
 ```powershell
+$env:ASSISTANT_PUBLISHER = 'Your actual publisher and copyright-holder name'
 node scripts/prepare-release.mjs win32
 node scripts/build-installer.mjs
+node scripts/check-release.mjs
 ```
 
 Output: `releases/1.1.0/windows/Laptop-Assistant-Setup-1.1.0-x64.exe`.
 
-The installer is per-user and creates Desktop/Start menu shortcuts. It includes the SDK runtime and Copilot sign-in binary. It is not code-signed.
+Replace the publisher example with your real identity; it was deliberately deferred during the audit. Windows packaging stops if the staged publisher is missing. Product and file versions are 1.1.0. The installer is per-user and creates Desktop/Start menu shortcuts. It includes the native SDK runtime and Copilot sign-in binary. Staging uses `npm ci --omit=dev --ignore-scripts` with `scripts/release-app/package-lock.json`. No install scripts run during that dependency install. Seven Electron fuses disable Node-runner/environment/inspector entry points, enable cookie encryption, remove extra file-protocol privileges, validate ASAR integrity and load app code only from ASAR. Native platform packages are unpacked and spawned from `app.asar.unpacked`.
 
-To test the release executable with a temporary profile:
+Signing is optional: supply electron-builder's `CSC_LINK` and `CSC_KEY_PASSWORD` (or `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD`) through your secure environment. For Azure Artifact Signing (formerly Trusted Signing), set `ASSISTANT_AZURE_SIGN_OPTIONS` to a JSON object containing `publisherName`, `endpoint`, `certificateProfileName`, and `codeSigningAccountName`; supply Azure authentication through its standard environment variables. Do not put secrets in the repository. The standard NSIS signing pipeline signs the app, uninstaller and installer; configured signing failures stop the build. Without credentials it builds unsigned. A signature does not guarantee immediate SmartScreen reputation.
+
+The shared release disables packaged DevTools and Node inspection. Playwright's Electron launcher depends on these interfaces and cannot verify this hardened installer. Use a disposable Windows account/VM for manual installer, native runtime, attachment, sign-in and persistence checks. The automation below remains useful only for development executables with debugging enabled.
+
+To run attachment automation on a development executable (modifies the clipboard):
 
 ```powershell
-$env:ASSISTANT_VERIFY_EXE = "$PWD\releases\1.1.0\windows\win-unpacked\Laptop Assistant.exe"
-node tests/verify-attachments.mjs
+npm run test:attachments
 ```
 
 ## Arch Linux package
@@ -78,4 +83,8 @@ node scripts/finalize-release.mjs
 
 This creates `releases/1.1.0/Share with friend/` containing both installers, instructions, and SHA-256 checksums. Attach these files to a GitHub Release; generated binaries and build trees are excluded from Git history.
 
+Check the installer with `Get-FileHash "releases/1.1.0/Share with friend/Laptop-Assistant-Setup-1.1.0-x64.exe" -Algorithm SHA256`. Compare it with `SHA256SUMS.txt`, and send the expected hash through a separate trusted channel. The allowed-files check runs before the share folder is populated.
+
 The release version is currently pinned to `1.1.0` in the packaging scripts. Update these together when preparing a new release. The source development manifest retains its original `1.0.0` version; the isolated release manifest supplies `1.1.0` to the installers.
+
+To intentionally refresh release dependencies after review, update `scripts/release-app/package.json` alongside the root manifest, then run `npm install --package-lock-only --ignore-scripts --prefix scripts/release-app`. Commit the reviewed lockfile with the source changes. Builds only consume that lockfile. See [modifications.md](modifications.md) for manual packaged checks, trust/distribution options and remaining risks.

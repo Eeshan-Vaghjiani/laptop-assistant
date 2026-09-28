@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { runtimeEnv } from '../runtime-env.mjs';
 const require = createRequire(import.meta.url);
 
 export function createSignIn(onSuccess) {
@@ -9,10 +10,10 @@ export function createSignIn(onSuccess) {
     start() {
       if (child) return { ...state };
       let executable;
-      try { executable = require.resolve(`@github/copilot-${process.platform}-${process.arch}`); }
+      try { executable = require.resolve(`@github/copilot-${process.platform}-${process.arch}`).replace(/app\.asar(?=[\\/]|$)/, 'app.asar.unpacked'); }
       catch { throw new Error('Bundled sign-in is available in the installer version. Run copilot login in a terminal, then Retry.'); }
       state = { running: true, output: 'Starting GitHub sign-in…\n', error: null };
-      child = spawn(executable, ['login', '--device-code'], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      child = spawn(executable, ['login', '--device-code', '--no-auto-update'], { env: runtimeEnv({ ...process.env, COPILOT_CLI_PATH: executable }), windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
       const append = chunk => { state.output = (state.output + chunk.toString().replace(/\x1b\[[0-9;]*[A-Za-z]/g, '')).slice(-16000); };
       child.stdout.on('data', append);
       child.stderr.on('data', append);

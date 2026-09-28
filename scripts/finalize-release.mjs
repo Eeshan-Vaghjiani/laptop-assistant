@@ -1,9 +1,11 @@
-import { mkdir, copyFile, readFile, writeFile, readdir, stat } from 'node:fs/promises';
+import { mkdir, copyFile, readFile, writeFile, stat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { checkRelease } from './check-release.mjs';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const release = path.join(root, 'releases/1.1.0');
+await checkRelease();
 const share = path.join(release, 'Share with friend');
 await mkdir(share, { recursive: true });
 const files = [
@@ -24,7 +26,8 @@ WINDOWS
 Double-click Laptop-Assistant-Setup-1.1.0-x64.exe and follow the installer.
 Open Laptop Assistant from the Desktop or Start menu.
 The installer includes the runtime; no separate Node.js or Copilot CLI is needed.
-This build is unsigned, so Windows may display an unknown-publisher warning.
+Unsigned builds show an unknown publisher. Signed new builds may still show a
+SmartScreen reputation warning. Check the publisher and SHA-256 before sharing.
 
 ARCH LINUX
 Open a terminal in the folder containing the downloaded package and run:
@@ -50,6 +53,10 @@ Chats and login are stored under the account of the person running the app.
 Windows chats: %APPDATA%\\Laptop Assistant\\chats
 Linux chats: ~/.config/Laptop Assistant/chats (or XDG_CONFIG_HOME)
 Copilot maintains its own per-user login/session state.
+Windows desktop chats use DPAPI encryption and require the original Windows
+account/profile. Copilot's separate session/log files are not encrypted by this app.
+Each permission request asks for approval. Allow all is per-chat until restart;
+reset it in the chat header. Approved shell commands can change or upload files.
 
 DOCKER
 Docker was used only by the developer to build and test the Arch package in an
@@ -57,17 +64,11 @@ isolated Linux environment on Windows. You do NOT need Docker to install or run
 either version. Neither app starts a container.
 
 VERIFICATION
-Windows packaged-app attachment tests passed. The NSIS installer was built;
-it was not installed over the creator's existing app.
-The Arch package was installed and launched as a normal user in an isolated Arch
-environment; runtime startup, attachments and clipboard tests passed.
-Completing OAuth with a new friend's account was not tested.
-
+Packaged behaviour and fresh-account sign-in must be verified for this build.
 SHA256SUMS.txt contains checksums for both installers.
+In PowerShell run:
+  Get-FileHash .\\Laptop-Assistant-Setup-1.1.0-x64.exe -Algorithm SHA256
+Compare with SHA256SUMS.txt. Obtain the expected hash through a separate trusted
+channel; a hash supplied alongside a tampered download is not proof of origin.
 `);
-// A release root may contain ONLY app files and freshly installed dependencies.
-const appRoot = path.join(release, 'windows/win-unpacked/resources/app');
-const allowed = new Set(['desktop', 'public', 'server.mjs', 'attachments.mjs', 'release.json', 'package.json', 'node_modules']);
-for (const name of await readdir(appRoot)) if (!allowed.has(name)) throw new Error(`Unexpected release content: ${name}`);
-console.log('PASS: Windows release root contains only allowlisted application content.');
 console.log(`Ready to share: ${share}`);

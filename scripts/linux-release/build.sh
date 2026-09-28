@@ -3,7 +3,7 @@ set -euo pipefail
 cp -a /input /work/app
 rm -rf /work/app/node_modules
 chown -R builder:builder /work
-runuser -u builder -- bash -c 'cd /work/app && npm install --omit=dev --ignore-scripts --no-audit --no-fund'
+runuser -u builder -- bash -c 'cd /work/app && npm ci --omit=dev --ignore-scripts --no-audit --no-fund'
 runuser -u builder -- node /scripts/linux-release/package.mjs
 runuser -u builder -- bash -c 'cd /work/package && makepkg --noconfirm'
 cp /work/package/*.pkg.tar.zst /output/
