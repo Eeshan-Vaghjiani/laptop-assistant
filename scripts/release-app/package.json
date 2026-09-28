@@ -1,0 +1,16 @@
+{
+  "name": "laptop-assistant",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "main": "desktop/main.mjs",
+  "description": "Personal desktop assistant powered by GitHub Copilot",
+  "overrides": { "koffi": "3.3.1" },
+  "dependencies": {
+    "@github/copilot": "1.0.85",
+    "@github/copilot-sdk": "1.0.14",
+    "dompurify": "^3.4.16",
+    "express": "^5.1.0",
+    "marked": "^18.0.14"
+  }
+}
