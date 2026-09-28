@@ -1,0 +1,31 @@
+Laptop Assistant 1.1.0 — Arch Linux x86_64
+
+Recommended installation (Arch Linux / compatible pacman distribution):
+  sudo pacman -U ./laptop-assistant-1.1.0-1-x86_64.pkg.tar.zst
+
+Open Laptop Assistant from your application menu, or run:
+  laptop-assistant
+
+The package includes Electron, the Copilot runtime and sign-in helper.
+Your existing Copilot CLI login is detected automatically. Otherwise click
+"Sign in to GitHub" inside the app and authorize YOUR account on GitHub.
+A GitHub account with Copilot access and an Internet connection are required.
+Use the desktop's password/keyring service (e.g. GNOME Keyring or KWallet)
+for the usual secure Copilot credential storage.
+
+Files/folders: Add files, Add folder, drag/drop, or copy/cut in the file manager
+and Ctrl+V into the composer. Clipboard support covers URI-list, GNOME/MATE and
+KDE file-manager formats. Attaching a cut item does not move the original.
+
+Chats are stored per user in ~/.config/Laptop Assistant/chats (or XDG_CONFIG_HOME).
+Copilot uses that user's own ~/.copilot state. No creator credentials or chats
+are included in this package.
+
+Uninstall:
+  sudo pacman -R laptop-assistant
+Personal chats and Copilot login remain in your home directory.
+
+An unpacked portable tar.gz is also provided. Extract it and run
+./laptop-assistant. The same shared-library dependencies are required.
+The pacman package is recommended because it sets up desktop integration and
+the Chromium sandbox permissions automatically. Do not run the app as root.

@@ -1,0 +1,10 @@
+{
+  "name": "laptop-assistant-release-tools",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@electron/packager": "20.0.0",
+    "electron-builder": "26.15.3",
+    "laptop-assistant": "file:../.."
+  }
+}

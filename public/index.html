@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Laptop Assistant</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" type="module"></script>
+</head>
+<body>
+  <div class="titlebar"><span class="titlebar-mark">✳</span> Laptop Assistant</div>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-icon">✳</span><strong>Laptop Assistant</strong></div>
+    <button id="new-chat" class="new-chat"><span>＋</span> New chat <kbd>Ctrl K</kbd></button>
+    <label class="search-wrap"><span>⌕</span><input id="search-chats" placeholder="Search chats" aria-label="Search chats"></label>
+    <div class="section-label">Your chats</div>
+    <nav id="chat-list" aria-label="Conversations"></nav>
+    <div class="sidebar-bottom"><span class="profile-icon">U</span><span id="account-name">Your workspace<small>GitHub Copilot</small></span><span class="local-dot" title="Local desktop app"></span></div>
+  </aside>
+  <main>
+    <header>
+      <div class="header-left"><button id="sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">◧</button><div class="model-wrap"><select id="model" aria-label="Copilot model"><option value="auto">Auto</option></select></div></div>
+      <div class="access-badge"><span></span> Full laptop access</div>
+    </header>
+    <div id="chat-title" class="visually-hidden">New conversation</div>
+    <div id="connection" class="connection" role="status">Connecting to GitHub Copilot…</div>
+    <section id="sign-in-panel" class="sign-in-panel" hidden aria-label="GitHub sign-in"><strong>Sign in with your own GitHub account</strong><p>Use the code below at GitHub to connect your Copilot account.</p><pre id="sign-in-output" aria-live="polite"></pre><button id="sign-in-browser" type="button">Open GitHub sign-in</button><button id="sign-in-retry" type="button" hidden>Try again</button></section>
+    <div id="chat-scroll" class="chat-scroll">
+    <section id="welcome" class="welcome">
+      <div class="welcome-mark">✳</div>
+      <h1>What can I help with?</h1>
+      <p>Ask a question, find a file, or get something done on your laptop.</p>
+      <div class="suggestions">
+        <button data-prompt="Find the most recently modified PDF files in my Documents, Downloads, and Desktop folders. Show their full paths."><span class="suggestion-icon">⌕</span><strong>Find a file</strong><span>Track down a document on my laptop</span><b>↗</b></button>
+        <button data-prompt="Look through my Downloads folder and suggest a clear way to organize it. Show me your plan first."><span class="suggestion-icon">▤</span><strong>Get organized</strong><span>Bring some order to my Downloads</span><b>↗</b></button>
+        <button data-prompt="Help me build something. Ask what I want to create and where I want to save it."><span class="suggestion-icon">⌘</span><strong>Build something</strong><span>Turn an idea into a working project</span><b>↗</b></button>
+        <button data-prompt="Check my Windows version, available disk space, and memory using read-only commands. Give me a short overview."><span class="suggestion-icon">◈</span><strong>Check my laptop</strong><span>A quick look at how things are running</span><b>↗</b></button>
+      </div>
+    </section>
+    <section id="messages" class="messages" aria-label="Chat messages" hidden></section>
+    <div id="activity" class="activity" hidden><details><summary><span id="activity-title">Activity</span><span id="activity-count"></span></summary><div id="tool-list"></div></details></div>
+    <section id="question" class="question" hidden aria-label="Assistant question"><strong id="question-text"></strong><div id="question-choices"></div><form id="answer-form"><input id="answer-input" placeholder="Type your answer…" aria-label="Answer"><button class="primary">Answer ↗</button></form></section>
+    </div>
+    <div class="composer-area">
+      <form id="composer" class="composer">
+        <div id="clipboard-preview" class="clipboard-preview" hidden><span id="clipboard-label"></span><button id="paste-files" type="button">Paste attachments</button></div>
+        <div id="attachments" class="attachments" aria-label="Attached files and folders" aria-live="polite" hidden></div>
+        <textarea id="prompt" rows="2" placeholder="Message Laptop Assistant" aria-label="Message your assistant" maxlength="100000"></textarea>
+        <div class="attachment-toolbar"><button id="add-files" type="button">＋ Add files</button><button id="add-folder" type="button">▱ Add folder</button><span id="attachment-hint">Drop files or folders here · Ctrl+V to paste</span></div>
+        <div class="composer-toolbar"><button id="folder-toggle" type="button" title="Change starting folder"><span>▱</span> <span id="folder-label">Your home folder</span></button><span id="run-status" role="status"></span><button id="stop" type="button" hidden>■ Stop</button><button id="send" class="send" aria-label="Send message" disabled>↑</button></div>
+      </form>
+      <div id="drop-overlay" hidden>Drop files or folders to attach</div>
+      <div id="folder-panel" hidden><label for="folder">Starting folder for new chats</label><div class="folder-input-row"><input id="folder" spellcheck="false"><button id="browse-folder" type="button" hidden>Browse…</button></div><small>Access extends to any folder allowed by your account.</small></div>
+      <p class="access-note">Powered by GitHub Copilot · Can read files, make changes, and run commands.</p>
+    </div>
+  </main>
+  <div id="toast" role="alert" hidden></div>
+</body>
+</html>
