@@ -42,7 +42,7 @@ Releases include no creator credentials, chats, or account configuration. Each u
 - Native starting-folder picker, live tool activity, clarification questions, and **Stop**.
 - **Ctrl+K** for a new chat; **Enter** to send; **Shift+Enter** for a new line.
 
-The assistant has full access allowed by the current OS account, and requested tool actions are automatically approved. The starting folder is not an access boundary. Stop cancels ongoing work; it does not undo completed actions.
+The assistant runs with your OS account's access. Each SDK permission request asks for **Allow once**, **Deny**, or **Allow all for this chat**. Review the displayed command, paths, URL or tool arguments. Allow all lasts until app restart and can be reset in the chat header; organisation-managed restrictions still apply. The starting folder and approval UI are not an OS sandbox: an approved shell command can read, change or upload files. Stop denies waiting requests and cancels ongoing work; it does not undo completed actions.
 
 ## Personal data
 
@@ -54,6 +54,10 @@ The assistant has full access allowed by the current OS account, and requested t
 | Browser development history | `.data/` in the project |
 
 Uninstalling retains personal chats. The distributable builds do not import the developer's legacy chat history.
+
+Windows desktop chat files are encrypted using Electron safeStorage (Windows DPAPI); existing plaintext chats migrate on startup. Keep the original Windows account and Electron profile to read them. Web and Linux chats remain plaintext. Copilot's separate session/log files and attached originals are not covered by this encryption. Windows account permissions and disk encryption still matter; same-user malware and administrators are outside the app's protection boundary.
+
+The app disables SDK session telemetry, session export, cross-session storage, optional OpenTelemetry exporters and automatic runtime updates using supported controls. Prompts and relevant context still go to GitHub Copilot. The native runtime may perform service/authentication diagnostics outside session telemetry; see [modifications.md](modifications.md) for audit limits and network verification. Renderer assets are local; web links open only when clicked.
 
 ## Development
 
@@ -67,6 +71,8 @@ npm test
 ```
 
 Development uses your local Copilot login. Run `copilot login` if needed; the bundled sign-in helper is included by the installer build. `npm run start:web` provides browser-based development. Desktop file-manager integration requires the desktop app.
+
+For web mode, open the private `http://127.0.0.1:<port>/#<token>` link printed in the terminal. The page removes the token from the address bar and keeps it in that tab's session storage for reloads. A new server launch needs its new link. Do not share the link: it grants access to your assistant. `/api/bootstrap` requires the token and returns only the home folder; the desktop app obtains its token through its private IPC bridge.
 
 ### Builds and tests
 

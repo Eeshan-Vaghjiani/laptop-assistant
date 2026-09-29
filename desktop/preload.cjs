@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 contextBridge.exposeInMainWorld('desktop', {
-  isDesktop: true,
   platform: process.platform,
+  bootstrap: () => ipcRenderer.invoke('desktop:bootstrap'),
   signIn: () => ipcRenderer.invoke('desktop:sign-in'),
   signInStatus: () => ipcRenderer.invoke('desktop:sign-in-status'),
   copyText: text => ipcRenderer.invoke('desktop:copy-text', text),

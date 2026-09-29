@@ -3,9 +3,10 @@ import { _electron as electron } from '@playwright/test';
 import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const temp = await mkdtemp(path.join(process.env.TEMP, 'opencode', 'assistant-desktop-'));
+const temp = await mkdtemp(path.join(tmpdir(), 'assistant-desktop-'));
 const executablePath = path.join(root, 'dist/Laptop Assistant-win32-x64/Laptop Assistant.exe');
 const env = { ...process.env, ASSISTANT_TEST_PROFILE: path.join(temp, 'profile') };
 delete env.ELECTRON_RUN_AS_NODE;
@@ -14,11 +15,15 @@ try {
   desktop = await electron.launch({ executablePath, env, timeout: 60000 });
   const page = await desktop.firstWindow();
   const errors = [];
+  const approvals = setInterval(() => {
+    page.getByRole('button', { name: 'Allow once', exact: true }).click({ timeout: 500 }).catch(() => {});
+  }, 700);
+  page.on('close', () => clearInterval(approvals));
   page.on('pageerror', error => errors.push(error.message));
   await page.locator('#connection').filter({ hasText: 'Connected to GitHub Copilot' }).waitFor({ timeout: 120000 });
   assert.equal(await page.title(), 'Laptop Assistant');
   assert.equal(await page.locator('h1').innerText(), 'What can I help with?');
-  assert.equal(await page.evaluate(() => window.desktop.isDesktop), true);
+  assert.equal(await page.evaluate(() => typeof window.desktop.bootstrap), 'function');
   assert.equal(await page.evaluate(() => typeof window.require), 'undefined');
   assert.equal(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight), true);
   await page.screenshot({ path: path.join(temp, 'desktop.png') });

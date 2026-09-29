@@ -5,7 +5,7 @@ export async function resolveAttachments(paths) {
   if (!Array.isArray(paths) || paths.length > 100) throw new Error('Attach up to 100 files or folders at a time.');
   const attachments = new Map();
   for (const filePath of paths) {
-    if (typeof filePath !== 'string' || filePath.length > 32767 || !path.isAbsolute(filePath)) {
+    if (typeof filePath !== 'string' || filePath.length > 32767 || filePath.includes('\0') || !path.isAbsolute(filePath) || /^[\\/]{2}/.test(filePath)) {
       throw new Error('Attachments must have an absolute file or folder path.');
     }
     const normalized = path.normalize(filePath);

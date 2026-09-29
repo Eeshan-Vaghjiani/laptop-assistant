@@ -17,8 +17,12 @@ try {
   browser = await chromium.launch({ channel: 'msedge', headless: true });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
+  const approvals = setInterval(() => {
+    page.getByRole('button', { name: 'Allow once', exact: true }).click({ timeout: 500 }).catch(() => {});
+  }, 700);
+  page.on('close', () => clearInterval(approvals));
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto(url);
+  await page.goto(`${url}/#${instance.token}`);
   await page.getByRole('status').filter({ hasText: 'Connected to GitHub Copilot' }).waitFor({ timeout: 90000 });
   assert.equal(await page.locator('h1').innerText(), 'What can I help with?');
   await page.screenshot({ path: path.join(dir, 'desktop.png'), fullPage: true });

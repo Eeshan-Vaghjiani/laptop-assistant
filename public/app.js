@@ -92,6 +92,8 @@ async function api(url, options = {}) {
 }
 const post = (url, body = {}) => api(url, { method: 'POST', body: JSON.stringify(body) });
 function controls() {
+  $('permissions').textContent = current?.allowAll ? 'Allow all active · Reset' : 'Ask before actions';
+  $('permissions').disabled = !current?.allowAll;
   $('send').disabled = !ready || busy || (!$('prompt').value.trim() && !attachments.length);
   $('send').hidden = busy;
   $('stop').hidden = !busy;
@@ -290,7 +292,7 @@ async function startSignIn() {
     await poll();
   } catch (error) { $('sign-in-output').textContent = error.message; $('sign-in-retry').hidden = false; }
 }
-$('sign-in-browser').onclick = () => { window.desktop.openLink('https://github.com/login/device').catch(error => toast(error.message)); };
+$('sign-in-browser').onclick = () => { openLink('https://github.com/login/device').catch(error => toast(error.message)); };
 $('sign-in-retry').onclick = startSignIn;
 if (window.desktop?.platform === 'linux') {
   const checkLaptop = document.querySelector('[data-prompt^="Check my Windows"]');
@@ -300,6 +302,8 @@ function question(data) {
   pendingQuestion = data.id;
   $('question').hidden = false;
   $('question-text').textContent = data.question;
+  $('question-details').hidden = !data.details;
+  $('question-details').textContent = data.details || '';
   $('question-choices').replaceChildren();
   $('answer-input').value = '';
   $('answer-form').hidden = data.allowFreeform === false && !!data.choices?.length;
@@ -314,14 +318,18 @@ function question(data) {
 }
 async function answer(text, wasFreeform = true) {
   if (!text.trim() || !pendingQuestion) return;
+  const id = pendingQuestion;
   try {
-    await post(`/api/chats/${current.id}/answer`, { id: pendingQuestion, answer: text, wasFreeform });
-    pendingQuestion = null;
-    $('question').hidden = true;
-    $('run-status').textContent = 'Working…';
+    await post(`/api/chats/${current.id}/answer`, { id, answer: text, wasFreeform });
+    if (pendingQuestion === id) {
+      pendingQuestion = null;
+      $('question').hidden = true;
+      $('run-status').textContent = 'Working…';
+    }
   } catch (error) { toast(error.message); }
 }
 function handleEvent(type, data) {
+  if (type === 'permissions' && current) { current.allowAll = data.allowAll; controls(); }
   if (type === 'delta') showMessage({ ...data, role: 'assistant' }, true);
   if (type === 'message' || type === 'user') showMessage(data);
   if (type === 'tool') showTool(data);
@@ -338,6 +346,7 @@ async function send() {
   $('tool-list').replaceChildren();
   $('activity').hidden = true;
   let accepted = false;
+  let reader;
   try {
     if (!current) {
       current = await post('/api/chats', { model: $('model').value, cwd: $('folder').value });
@@ -349,7 +358,7 @@ async function send() {
       body: JSON.stringify({ prompt, attachments }),
     });
     if (!res.ok) throw new Error((await res.json()).error || 'Could not send message.');
-    const reader = res.body.getReader();
+    reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '', doneEvent = false;
     while (true) {
@@ -360,8 +369,9 @@ async function send() {
       while ((end = buffer.indexOf('\n\n')) >= 0) {
         const event = buffer.slice(0, end);
         buffer = buffer.slice(end + 2);
-        const type = event.match(/^event: (.+)$/m)?.[1];
-        const raw = event.match(/^data: (.+)$/m)?.[1];
+        const lines = event.split('\n');
+        const type = lines.find(line => line.startsWith('event: '))?.slice(7);
+        const raw = lines.find(line => line.startsWith('data: '))?.slice(6);
         if (!type || !raw) continue;
         if (type === 'user') { accepted = true; $('prompt').value = ''; attachments = []; draftVersion++; renderAttachments(); }
         if (type === 'done') doneEvent = true;
@@ -370,6 +380,7 @@ async function send() {
     }
     if (!doneEvent) throw new Error('Connection interrupted. Reopen this conversation to see saved progress.');
   } catch (error) {
+    await reader?.cancel().catch(() => {});
     toast(error.message);
     if (!accepted) $('prompt').value = prompt;
   } finally {
@@ -467,6 +478,10 @@ $('stop').onclick = async () => {
   try { await post(`/api/chats/${current.id}/stop`); } catch (error) { toast(error.message); }
   finally { $('stop').disabled = false; }
 };
+$('permissions').onclick = async () => {
+  try { await post(`/api/chats/${current.id}/permissions`, { allowAll: false }); current.allowAll = false; controls(); }
+  catch (error) { toast(error.message); }
+};
 $('folder-toggle').onclick = () => { $('folder-panel').hidden = !$('folder-panel').hidden; };
 $('folder').addEventListener('input', updateFolder);
 $('browse-folder').hidden = !window.desktop;
@@ -482,23 +497,35 @@ function filterChats() {
   document.querySelectorAll('.chat-item').forEach(button => { button.hidden = !button.textContent.toLowerCase().includes(query); });
 }
 $('search-chats').addEventListener('input', filterChats);
-$('messages').addEventListener('click', e => {
+async function openLink(href) {
+  const url = new URL(href);
+  if (href.length > 8192 || !['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error('Invalid web link.');
+  if (window.desktop) await window.desktop.openLink(url.href);
+  else window.open(url.href, '_blank', 'noopener,noreferrer');
+}
+function followLink(e) {
   const link = e.target.closest('a');
   if (!link) return;
   e.preventDefault();
-  try {
-    const url = new URL(link.href);
-    if (!['http:', 'https:'].includes(url.protocol)) return;
-    if (window.desktop) window.desktop.openLink(url.href).catch(error => toast(error.message));
-    else window.open(url.href, '_blank', 'noopener,noreferrer');
-  } catch { /* Ignore invalid links. */ }
-});
+  if (e.type === 'click' || e.button === 1) openLink(link.href).catch(error => toast(error.message));
+}
+$('messages').addEventListener('click', followLink);
+$('messages').addEventListener('auxclick', followLink);
 $('answer-form').addEventListener('submit', e => { e.preventDefault(); void answer($('answer-input').value); });
 window.addEventListener('beforeunload', e => { if (busy) { e.preventDefault(); e.returnValue = ''; } });
 
 try {
-  const bootstrap = await (await fetch('/api/bootstrap')).json();
-  token = bootstrap.token;
+  let bootstrap;
+  if (window.desktop) {
+    bootstrap = await window.desktop.bootstrap();
+    token = bootstrap.token;
+  } else {
+    const fragment = location.hash.slice(1);
+    window.history.replaceState(null, '', location.pathname + location.search);
+    if (/^[a-f0-9]{64}$/.test(fragment)) sessionStorage.setItem('assistantToken', fragment);
+    token = sessionStorage.getItem('assistantToken') || '';
+    bootstrap = await api('/api/bootstrap');
+  }
   $('folder').value = bootstrap.home;
   updateFolder();
   await connection();
@@ -507,6 +534,6 @@ try {
   await history();
   $('prompt').focus();
 } catch (error) {
-  $('connection').textContent = `Unable to connect: ${error.message}. Start the app and refresh this page.`;
+  $('connection').textContent = `Unable to connect: ${error.message}`;
   $('connection').className = 'connection error';
 }
