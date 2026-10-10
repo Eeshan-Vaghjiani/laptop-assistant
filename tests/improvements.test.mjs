@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
@@ -50,14 +50,14 @@ test('generic filenames can be found by date, inspected visually, and documents 
   const library = createFileLibrary(home);
   const result = await library.search({ kind: 'image', days: 7 });
   assert.equal(result.files.length, 1);
-  assert.equal(result.files[0].path, file);
+  assert.equal(result.files[0].path, await realpath(file));
   assert.match(result.files[0].evidence, /not inspected/);
   const sheet = await inspectImages([file]);
   assert.equal(sheet.files[0].number, 1);
   assert.equal((await sharp(Buffer.from(sheet.data, 'base64')).metadata()).format, 'jpeg');
   assert.equal((await previewFile(file)).mimeType, 'image/jpeg');
   const matched = await library.search({ kind: 'document', query: 'progress', content: true });
-  assert.equal(matched.files[0].path, report);
+  assert.equal(matched.files[0].path, await realpath(report));
   assert.match((await readDocument(report)).text, /Maths: 80/);
   const cancelled = new AbortController(); cancelled.abort();
   await assert.rejects(library.search({}, cancelled.signal), /stopped/);
