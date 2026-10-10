@@ -7,6 +7,7 @@
   <title>Laptop Assistant</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="enhancements.css">
   <script src="app.js" type="module"></script>
 </head>
 <body>
@@ -17,11 +18,13 @@
     <label class="search-wrap"><span>⌕</span><input id="search-chats" placeholder="Search chats" aria-label="Search chats"></label>
     <div class="section-label">Your chats</div>
     <nav id="chat-list" aria-label="Conversations"></nav>
+    <button id="settings-open" class="sidebar-action" type="button">⚙ Settings</button>
+    <button id="files-open" class="sidebar-action" type="button">⌕ Find files & screenshots</button>
     <div class="sidebar-bottom"><span class="profile-icon">U</span><span id="account-name">Your workspace<small>GitHub Copilot</small></span><span class="local-dot" title="Local desktop app"></span></div>
   </aside>
   <main>
     <header>
-      <div class="header-left"><button id="sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">◧</button><div class="model-wrap"><select id="model" aria-label="Copilot model"><option value="auto">Auto</option></select></div></div>
+      <div class="header-left"><button id="sidebar-toggle" aria-label="Toggle sidebar" title="Toggle sidebar">◧</button><div class="model-wrap"><select id="model" aria-label="Copilot model"><option value="gpt-6-astra">GPT-6 Astra</option></select></div><select id="effort" aria-label="Reasoning effort"><option value="max">Max</option></select></div>
       <button id="permissions" class="access-badge" type="button" disabled>Ask before actions</button>
     </header>
     <div id="chat-title" class="visually-hidden">New conversation</div>
@@ -31,25 +34,29 @@
     <section id="welcome" class="welcome">
       <div class="welcome-mark">✳</div>
       <h1>What can I help with?</h1>
-      <p>Ask a question, find a file, or get something done on your laptop.</p>
+      <p>Your files. Your questions. A little more clarity.</p>
       <div class="suggestions">
-        <button data-prompt="Find the most recently modified PDF files in my Documents, Downloads, and Desktop folders. Show their full paths."><span class="suggestion-icon">⌕</span><strong>Find a file</strong><span>Track down a document on my laptop</span><b>↗</b></button>
+        <button data-prompt="Find the Instagram screenshot I took recently. Search recent images even if their names are generic, visually inspect the candidates, and show the matching files with previews. Tell me what you checked."><span class="suggestion-icon">⌕</span><strong>Find a screenshot</strong><span>Search by what it shows, not its name</span><b>↗</b></button>
         <button data-prompt="Look through my Downloads folder and suggest a clear way to organize it. Show me your plan first."><span class="suggestion-icon">▤</span><strong>Get organized</strong><span>Bring some order to my Downloads</span><b>↗</b></button>
-        <button data-prompt="Help me build something. Ask what I want to create and where I want to save it."><span class="suggestion-icon">⌘</span><strong>Build something</strong><span>Turn an idea into a working project</span><b>↗</b></button>
+        <button data-prompt="Find my second-year progress report, read the actual marks, and calculate my mean. Check whether it is weighted, cite the file and pages used, and show the report so I can preview it."><span class="suggestion-icon">▤</span><strong>Understand a report</strong><span>Find it, read it, check the numbers</span><b>↗</b></button>
         <button data-prompt="Check my Windows version, available disk space, and memory using read-only commands. Give me a short overview."><span class="suggestion-icon">◈</span><strong>Check my laptop</strong><span>A quick look at how things are running</span><b>↗</b></button>
       </div>
     </section>
     <section id="messages" class="messages" aria-label="Chat messages" hidden></section>
+    <section id="file-results" class="file-results" hidden><div class="results-heading"><strong id="file-results-title">Files found</strong><button id="file-results-close" type="button" aria-label="Hide results">×</button></div><p id="file-results-note"></p><div id="file-results-list" class="file-grid"></div></section>
     <div id="activity" class="activity" hidden><details><summary><span id="activity-title">Activity</span><span id="activity-count"></span></summary><div id="tool-list"></div></details></div>
     <section id="question" class="question" hidden aria-label="Assistant question"><strong id="question-text"></strong><pre id="question-details" hidden></pre><div id="question-choices"></div><form id="answer-form"><input id="answer-input" placeholder="Type your answer…" aria-label="Answer" maxlength="100000"><button class="primary">Answer ↗</button></form></section>
     </div>
     <div class="composer-area">
+      <details id="progress-panel" class="progress-panel"><summary>Live activity <span id="progress-summary">Ready</span></summary><ol id="progress-log"></ol></details>
+      <div id="run-indicator" class="run-indicator" role="status" aria-live="polite" data-phase="idle"><span class="run-orbit" aria-hidden="true"></span><div><strong id="run-label">Ready when you are</strong><small id="run-detail">Your personal workspace</small></div><span id="run-elapsed"></span></div>
+      <section id="message-queue" class="message-queue" hidden aria-label="Queued follow-ups"><div class="results-heading"><strong id="queue-label">Queued messages</strong><button id="queue-resume" type="button" hidden>Resume queue</button></div><ol id="queue-list"></ol></section>
       <form id="composer" class="composer">
         <div id="clipboard-preview" class="clipboard-preview" hidden><span id="clipboard-label"></span><button id="paste-files" type="button">Paste attachments</button></div>
         <div id="attachments" class="attachments" aria-label="Attached files and folders" aria-live="polite" hidden></div>
         <textarea id="prompt" rows="2" placeholder="Message Laptop Assistant" aria-label="Message your assistant" maxlength="100000"></textarea>
         <div class="attachment-toolbar"><button id="add-files" type="button">＋ Add files</button><button id="add-folder" type="button">▱ Add folder</button><span id="attachment-hint">Drop files or folders here · Ctrl+V to paste</span></div>
-        <div class="composer-toolbar"><button id="folder-toggle" type="button" title="Change starting folder"><span>▱</span> <span id="folder-label">Your home folder</span></button><span id="run-status" role="status"></span><button id="stop" type="button" hidden>■ Stop</button><button id="send" class="send" aria-label="Send message" disabled>↑</button></div>
+        <div class="composer-toolbar"><button id="folder-toggle" type="button" title="Change starting folder"><span>▱</span> <span id="folder-label">Your home folder</span></button><span id="run-status" role="status"></span><button id="interrupt-send" type="button" hidden title="Stop the current task and send this follow-up next">Send next now</button><button id="stop" type="button" hidden>■ Stop</button><button id="send" class="send" aria-label="Send message" disabled>↑</button></div>
       </form>
       <div id="drop-overlay" hidden>Drop files or folders to attach</div>
       <div id="folder-panel" hidden><label for="folder">Starting folder for new chats</label><div class="folder-input-row"><input id="folder" spellcheck="false"><button id="browse-folder" type="button" hidden>Browse…</button></div><small>Access extends to any folder allowed by your account.</small></div>
@@ -57,5 +64,8 @@
     </div>
   </main>
   <div id="toast" role="alert" hidden></div>
+  <dialog id="settings-dialog" class="panel-dialog"><div class="dialog-heading"><div><span class="eyebrow">YOUR WORKSPACE</span><h2>Make it yours</h2></div><button id="settings-close" type="button" aria-label="Close settings">×</button></div><p>Model and effort choices in the top bar are remembered across restarts and new chats.</p><label for="access-mode">Laptop access</label><select id="access-mode"><option value="ask">Ask before actions</option><option value="full">Full control — routine actions automatically</option></select><p class="setting-description">Full control applies to every chat. Reads, searches and routine edits proceed automatically. Deletions, protected system changes and opaque or external actions still need confirmation. Organisation rules remain in effect.</p><div class="settings-summary"><strong>Private by default</strong><p>Thinking text stays hidden. You see live progress, tool activity and results. Images you ask the assistant to inspect are sent to your selected Copilot model.</p></div><button id="settings-save" class="accent-button" type="button">Save preferences</button><span id="settings-status" role="status"></span></dialog>
+  <dialog id="file-search-dialog" class="panel-dialog"><div class="dialog-heading"><h2>Find something</h2><button id="file-search-close" type="button" aria-label="Close file search">×</button></div><p>Search filenames or document text here. For “a screenshot of Instagram”, ask in chat so the assistant can inspect the images.</p><form id="file-search-form"><label for="file-query">Name or words in a document</label><input id="file-query" placeholder="Report, receipt, project… (or leave blank)"><div class="search-filters"><select id="file-kind" aria-label="File type"><option value="all">All files</option><option value="image">Images & screenshots</option><option value="document">Documents</option></select><select id="file-days" aria-label="Date range"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="365">Last year</option><option value="0">Any time</option></select></div><label class="check-label"><input id="file-content" type="checkbox"> Search inside document excerpts</label><button id="file-search-submit" class="accent-button">Search my folders</button><span id="file-search-status" role="status"></span></form></dialog>
+  <dialog id="preview-dialog" class="preview-dialog"><div class="dialog-heading"><div><h2 id="preview-title">Preview</h2><p id="preview-path"></p></div><button id="preview-close" type="button" aria-label="Close preview">×</button></div><div id="preview-body"></div><div class="preview-toolbar"><button id="preview-previous" type="button">← Previous page</button><span id="preview-page"></span><button id="preview-next" type="button">Next page →</button><button id="preview-reveal" type="button">Show in folder</button></div></dialog>
 </body>
 </html>

@@ -5,12 +5,19 @@
   "type": "module",
   "main": "desktop/main.mjs",
   "description": "Personal desktop assistant powered by GitHub Copilot",
-  "overrides": { "koffi": "3.3.1" },
+  "overrides": {
+    "koffi": "3.3.1"
+  },
   "dependencies": {
     "@github/copilot": "1.0.85",
     "@github/copilot-sdk": "1.0.14",
+    "@napi-rs/canvas": "^1.0.10",
     "dompurify": "^3.4.16",
     "express": "^5.1.0",
-    "marked": "^18.0.14"
+    "laptop-assistant": "file:../..",
+    "mammoth": "^1.13.0",
+    "marked": "^18.0.14",
+    "pdfjs-dist": "^6.4.299",
+    "sharp": "^0.35.5"
   }
 }

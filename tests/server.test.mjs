@@ -244,7 +244,7 @@ test('allow-all is per-chat, resettable, and does not survive restart or managed
   const chat = await (await request('/api/chats', {})).json();
   client.session.sendAndWait = async () => {
     client.session.permissions = [];
-    for (let i = 0; i < 2; i++) client.session.permissions.push(await client.session.config.onPermissionRequest({ kind: 'shell' }, {}));
+    for (let i = 0; i < 2; i++) client.session.permissions.push(await client.session.config.onPermissionRequest({ kind: 'shell', fullCommandText: 'Get-Date', commands: [{ identifier: 'Get-Date', readOnly: true }] }, {}));
   };
   const stream = await streamEvents(await request(`/api/chats/${chat.id}/message`, { prompt: 'allow' }));
   const q = await stream.next('question');
@@ -465,4 +465,73 @@ test('managed permissions are denied with exactly one notice per run', async t =
     const saved = await (await request(`/api/chats/${chat.id}`)).json();
     assert.equal(saved.messages.filter(m => m.role === 'notice').length, i);
   }
+});
+
+test('persistent full control approves routine requests but still queues destructive requests', async t => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'assistant-full-control-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const { request, client } = await setup(t, dir);
+  assert.equal((await request('/api/settings', { access: 'full' })).status, 200);
+  const chat = await (await request('/api/chats', {})).json();
+  client.session.sendAndWait = async () => {
+    client.session.routine = await client.session.config.onPermissionRequest({ kind: 'read', path: 'report.txt' }, {});
+    client.session.danger = await client.session.config.onPermissionRequest({ kind: 'shell', fullCommandText: 'Remove-Item report.txt' }, {});
+  };
+  const stream = await streamEvents(await request(`/api/chats/${chat.id}/message`, { prompt: 'test' }));
+  const question = await stream.next('question');
+  assert.match(question.question, /delete/);
+  assert.deepEqual(question.choices, ['Allow once', 'Deny']);
+  assert.deepEqual(client.session.routine, { kind: 'approve-once' });
+  await request(`/api/chats/${chat.id}/answer`, { id: question.id, answer: 'Deny', wasFreeform: false });
+  await stream.next('done');
+  assert.deepEqual(client.session.danger, { kind: 'reject' });
+  const restarted = await setup(t, dir);
+  assert.equal((await (await restarted.request('/api/settings')).json()).access, 'full');
+});
+
+test('model changes validate advertised effort and update a running SDK session between turns', async t => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'assistant-model-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const { request, client } = await setup(t, dir);
+  client.listModels = async () => [{ id: 'gpt-6-astra', name: 'Astra', supportedReasoningEfforts: ['high', 'max'] }, { id: 'other', name: 'Other', supportedReasoningEfforts: ['low', 'high'] }];
+  client.session.rpc.model = { switchTo: async choice => { client.switched = choice; } };
+  const chat = await (await request('/api/chats', {})).json();
+  await (await request(`/api/chats/${chat.id}/message`, { prompt: 'hello' })).text();
+  assert.equal(client.session.config.reasoningEffort, 'max');
+  const response = await request(`/api/chats/${chat.id}/model`, { model: 'other', effort: 'max' });
+  assert.equal(response.status, 200);
+  assert.deepEqual(client.switched, { modelId: 'other', reasoningEffort: 'high' });
+  assert.equal((await (await request('/api/settings')).json()).model, 'other');
+});
+
+test('tool-only completion triggers one answer recovery and never silently reports success', async t => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'assistant-recovery-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const { request, client } = await setup(t, dir);
+  const chat = await (await request('/api/chats', {})).json();
+  let calls = 0;
+  client.session.sendAndWait = async options => {
+    calls++;
+    if (calls === 1) {
+      client.session.emit('assistant.message', { messageId: 'plan', phase: 'commentary', content: 'I will search.' });
+      client.session.emit('tool.execution_start', { toolCallId: 'search', toolName: 'assistant_find_files' });
+      client.session.emit('tool.execution_complete', { toolCallId: 'search', success: true });
+    } else {
+      assert.equal(options.source, 'system');
+      client.session.emit('assistant.message', { messageId: 'answer', content: 'I could not verify a current cumulative mean from these records.' });
+    }
+  };
+  const response = await (await request(`/api/chats/${chat.id}/message`, { prompt: 'My current mean?' })).text();
+  assert.equal(calls, 2);
+  assert.match(response, /could not verify/);
+  assert.match(response, /"incomplete":false/);
+  calls = 0;
+  client.session.sendAndWait = async () => {
+    calls++;
+    client.session.emit('assistant.message', { messageId: `plan-${calls}`, phase: 'commentary', content: 'I will search.' });
+  };
+  const incomplete = await (await request(`/api/chats/${chat.id}/message`, { prompt: 'Try again' })).text();
+  assert.equal(calls, 2);
+  assert.match(incomplete, /"incomplete":true/);
+  assert.match(incomplete, /stopped without a final answer/);
 });

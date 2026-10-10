@@ -19,7 +19,7 @@ await build({
     appId: 'com.local.laptopassistant', productName: 'Laptop Assistant', electronVersion,
     copyright: `Copyright © ${new Date().getFullYear()} ${manifest.author}`,
     directories: { output: path.join(release, 'windows') },
-    asar: { smartUnpack: false }, asarUnpack: ['node_modules/@github/copilot-sdk-win32-x64/**/*', 'node_modules/@github/copilot-win32-x64/**/*'],
+    asar: { smartUnpack: false }, asarUnpack: ['node_modules/@github/copilot-sdk-win32-x64/**/*', 'node_modules/@github/copilot-win32-x64/**/*', 'node_modules/@img/**/*', 'node_modules/@napi-rs/**/*'],
     npmRebuild: false, nodeGypRebuild: false,
     buildVersion: '1.1.0', forceCodeSigning: signing,
     electronFuses: {
@@ -28,7 +28,7 @@ await build({
       grantFileProtocolExtraPrivileges: false,
       enableEmbeddedAsarIntegrityValidation: true, onlyLoadAppFromAsar: true,
     },
-    files: ['desktop/**/*', 'public/**/*', 'server.mjs', 'attachments.mjs', 'runtime-env.mjs', 'release.json', 'package.json', 'node_modules/**/*'],
+    files: ['desktop/**/*', 'public/**/*', 'server.mjs', 'attachments.mjs', 'runtime-env.mjs', 'preferences.mjs', 'access-policy.mjs', 'file-library.mjs', 'release.json', 'package.json', 'node_modules/**/*'],
     win: { target: ['nsis'], executableName: 'Laptop Assistant', signExecutable: signing, signExts: ['.dll', '.node'], ...(azureSignOptions ? { azureSignOptions } : {}) },
     nsis: {
       artifactName: 'Laptop-Assistant-Setup-1.1.0-x64.exe', oneClick: false,

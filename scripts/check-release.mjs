@@ -9,7 +9,7 @@ export async function checkRelease() {
   const builderRequire = createRequire(require.resolve('app-builder-lib'));
   const { listPackage } = builderRequire('@electron/asar');
   const resources = path.join(root, 'releases/1.1.0/windows/win-unpacked/resources');
-  const allowed = new Set(['desktop', 'public', 'server.mjs', 'attachments.mjs', 'runtime-env.mjs', 'release.json', 'package.json', 'node_modules']);
+  const allowed = new Set(['desktop', 'public', 'server.mjs', 'attachments.mjs', 'runtime-env.mjs', 'preferences.mjs', 'access-policy.mjs', 'file-library.mjs', 'release.json', 'package.json', 'node_modules']);
   for (const entry of listPackage(path.join(resources, 'app.asar'))) {
     const name = entry.replaceAll('\\', '/').replace(/^\//, '');
     if (!allowed.has(name.split('/')[0]) || name.split('/').includes('..')) throw new Error(`Unexpected release content: ${name}`);
@@ -20,6 +20,7 @@ export async function checkRelease() {
       const info = await lstat(path.join(dir, name));
       if (info.isSymbolicLink()) throw new Error(`Unexpected release link: ${relative}`);
       if (!/^(node_modules|node_modules\/@github)$/.test(relative)
+        && !/^node_modules\/(?:@img|@napi-rs)(?:\/|$)/.test(relative)
         && !/^node_modules\/@github\/copilot-(sdk-)?win32-x64(?:\/|$)/.test(relative)) throw new Error(`Unexpected unpacked content: ${relative}`);
       if (info.isDirectory()) await visit(path.join(dir, name), relative + '/');
     }

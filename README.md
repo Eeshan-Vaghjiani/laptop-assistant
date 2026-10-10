@@ -35,6 +35,21 @@ Releases include no creator credentials, chats, or account configuration. Each u
 
 ## Features
 
+### Workspace improvements
+
+- The composer stays usable while a response runs. Enter queues up to ten follow-ups in order, with edit/remove controls. **Send next now** stops the current response and prioritizes your clarification. Stop/error/incomplete pauses the queue until resumed. The queue is local to the open window; closing the app discards unsent queued items.
+- Live activity gives timestamped search, document-reading, image-inspection and status summaries. Private internal reasoning is not displayed.
+- Completion tracks whether a final assistant answer followed tool use. One bounded answer-recovery attempt is made for a tool-only ending; otherwise the UI reports **Answer incomplete**. **Response finished** describes turn completion, not a guarantee that an answer is correct.
+
+- GPT-6 Astra / Max is the initial preference when available. Model and supported effort choices are remembered in per-user settings, including across restarts and new chats. Models can be changed between turns in an existing conversation.
+- A persistent animated progress bar shows preparation, thinking (without exposing reasoning text), tool activity, required input, elapsed time, completion, failure and cancellation.
+- Settings offers persistent **Full control** for routine operations across conversations. Deletion, protected-system/credential changes, opaque scripts and external actions require confirmation. This is a request-classification policy, not an OS sandbox; organisation restrictions still apply.
+- **Find files & screenshots** searches names, date ranges and bounded document excerpts. In chat, visual search inspects numbered image contact sheets and individual images, so generic filenames can still be useful.
+- File cards offer Preview, Show in folder, Open and Attach. Images, PDF pages, DOCX and text excerpts can be previewed. Report questions use document text or scanned-page images and should cite the actual file/page.
+- Search is bounded (30,000 entries, 20 seconds, eight directory levels per call); inaccessible/skipped locations and limits are reported. It is not a full-disk semantic index. Image inspection uses the selected Copilot model and sends the requested image context to Copilot.
+
+Additional checks: `npm run test:improvements` for desktop state/preferences and `npm run test:discovery:live` for an explicit Copilot test using generated images and a report (consumes usage).
+
 - Streaming chat with Markdown, code blocks, and copy-response buttons.
 - Searchable conversation history and model selection.
 - **Add files** and **Add folder** controls, drag-and-drop, and removable attachment chips.

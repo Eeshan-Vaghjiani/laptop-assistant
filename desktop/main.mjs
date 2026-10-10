@@ -8,6 +8,7 @@ import { createApp } from '../server.mjs';
 import { resolveAttachments } from '../attachments.mjs';
 import { createFileClipboard } from './file-clipboard.mjs';
 import { createSignIn } from './sign-in.mjs';
+import { localFile } from '../file-library.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 app.setName('Laptop Assistant');
@@ -96,6 +97,15 @@ else {
       return signIn.status();
     });
     const readClipboardFiles = createFileClipboard(clipboard);
+    ipcMain.handle('desktop:file-action', async (event, { path: filePath, action }) => {
+      if (!trusted(event) || !['open', 'reveal'].includes(action)) throw new Error('Invalid file action.');
+      const { canonical } = await localFile(filePath);
+      if (action === 'reveal') { shell.showItemInFolder(canonical); return; }
+      const ext = path.extname(canonical).toLowerCase();
+      if (!['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.pdf', '.docx', '.xlsx', '.pptx', '.txt', '.csv', '.mp4', '.mp3', '.wav', '.mov'].includes(ext)) throw new Error('Use Show in folder to open this file type.');
+      const error = await shell.openPath(canonical);
+      if (error) throw new Error(error);
+    });
     ipcMain.handle('desktop:read-text', event => {
       if (!trusted(event)) throw new Error('Untrusted window.');
       return clipboard.readText();

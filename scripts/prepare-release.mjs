@@ -11,7 +11,7 @@ const release = path.join(root, 'releases', '1.1.0');
 const stage = path.join(release, 'build', platform);
 await rm(stage, { recursive: true, force: true });
 await mkdir(stage, { recursive: true });
-for (const file of ['server.mjs', 'attachments.mjs', 'runtime-env.mjs']) await copyFile(path.join(root, file), path.join(stage, file));
+for (const file of ['server.mjs', 'attachments.mjs', 'runtime-env.mjs', 'preferences.mjs', 'access-policy.mjs', 'file-library.mjs']) await copyFile(path.join(root, file), path.join(stage, file));
 await copyFile(path.join(root, 'scripts/release-app/package-lock.json'), path.join(stage, 'package-lock.json'));
 for (const folder of ['desktop', 'public']) await cp(path.join(root, folder), path.join(stage, folder), { recursive: true });
 const original = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
