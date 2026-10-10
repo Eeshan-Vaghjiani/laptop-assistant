@@ -4,6 +4,12 @@ A desktop assistant for **Windows and Arch Linux**, powered by the official GitH
 
 ## Download and install
 
+### One-run Windows setup from source
+
+Extract the complete source setup bundle and double-click **`setup.bat`**. It downloads and verifies a private Node.js 24 runtime, installs dependencies and the Copilot sign-in helper, builds the desktop app, creates Start menu/Desktop shortcuts, and launches it. No preinstalled Git, Node.js or Docker is needed. Your own GitHub Copilot authorization is still required.
+
+Setup installs per user under `%LOCALAPPDATA%\LaptopAssistant`, preserves existing chats/preferences, and keeps previous app copies for rollback. New profiles use Astra/Max and full control for routine actions. Run `node scripts/package-setup.mjs` to create a source-only ZIP in `releases/source-setup/` with the latest local code, excluding personal data and dependencies.
+
 **[Download the latest release](https://github.com/Eeshan-Vaghjiani/laptop-assistant/releases/latest)**
 
 ### Windows (Intel/AMD 64-bit)

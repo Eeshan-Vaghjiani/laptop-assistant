@@ -3,3 +3,4 @@
 Dockerfile text eol=lf
 *.yml text eol=lf
 *.cmd text eol=crlf
+*.bat text eol=crlf

@@ -1,0 +1,16 @@
+import { mkdir, cp, copyFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
+const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const output = path.join(root, 'releases', 'source-setup');
+const source = path.join(output, 'Laptop Assistant Setup');
+await mkdir(path.join(source, 'scripts'), { recursive: true });
+for (const file of ['setup.bat', 'package.json', 'package-lock.json', 'server.mjs', 'attachments.mjs', 'runtime-env.mjs', 'preferences.mjs', 'access-policy.mjs', 'file-library.mjs']) await copyFile(path.join(root, file), path.join(source, file));
+for (const folder of ['desktop', 'public']) await cp(path.join(root, folder), path.join(source, folder), { recursive: true });
+for (const file of ['setup-windows.ps1', 'build.mjs']) await copyFile(path.join(root, 'scripts', file), path.join(source, 'scripts', file));
+await writeFile(path.join(source, 'READ ME FIRST.txt'), `Laptop Assistant — Windows source setup\r\n\r\n1. Extract the ENTIRE ZIP into a folder.\r\n2. Double-click setup.bat. Keep the window open until setup finishes.\r\n3. Open Laptop Assistant from Start or the Desktop.\r\n4. If prompted, use Sign in to GitHub in the app and authorize YOUR Copilot account.\r\n\r\nRequires 64-bit Intel/AMD Windows, Internet access, and a GitHub account with Copilot access.\r\nNo preinstalled Node.js, Git, or Docker is required. Setup downloads Node.js 24 LTS, verifies its SHA-256, installs dependencies, bundles the Copilot sign-in helper, and builds the app. First setup may take several minutes and needs a few GB of free space while building.\r\n\r\nInstalls under %LOCALAPPDATA%\\LaptopAssistant without administrator access.\r\nChats/settings stay under %APPDATA%\\Laptop Assistant; existing data and preferences are preserved.\r\nNew profiles default to Astra / Max and Full control for routine actions. You can change these in the app. Sensitive/destructive actions still ask. Model availability depends on your account.\r\n\r\nThis bundle contains current source only, no creator chats, credentials, or personal documents.\r\nRunning setup again builds a new copy and updates the shortcuts. Previous installed app copies are kept for rollback.\r\nThis is an unsigned community application. A managed laptop may block scripts or downloads; follow your organisation's IT policy if so.\r\n`);
+const zip = path.join(output, 'Laptop-Assistant-Setup-Windows.zip');
+const quote = value => `'${value.replaceAll("'", "''")}'`;
+execFileSync('powershell.exe', ['-NoProfile', '-Command', `Compress-Archive -LiteralPath ${quote(source)} -DestinationPath ${quote(zip)} -Force`], { stdio: 'inherit' });
+console.log(`Share this ZIP: ${zip}`);
